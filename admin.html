@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Admin BMN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+    <div class="container mt-5">
+      <h3 class="mb-4">Dashboard Admin - Daftar Aset</h3>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <input
+            type="text"
+            id="searchInput"
+            class="form-control"
+            placeholder="Cari ID Aset..."
+          />
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-primary w-100" onclick="loadAset()">Cari</button>
+        </div>
+      </div>
+
+      <div id="asetList" class="row gy-4"></div>
+
+      <hr />
+
+      <div id="riwayatPengajuan" class="mt-4"></div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        where,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+      import { firebaseConfig } from "./firebase-config.js";
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      async function loadAset() {
+        const asetList = document.getElementById("asetList");
+        const search = document.getElementById("searchInput").value.trim().toLowerCase();
+
+        const snapshot = await getDocs(collection(db, "aset"));
+        asetList.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const id = doc.id;
+          const nama = data.nama || "-";
+          const merek = data.merek || "-";
+
+          if (search && id.toLowerCase() !== search) return;
+
+
+          const div = document.createElement("div");
+          div.className = "col-12";
+          div.innerHTML = `
+            <div class="card">
+              <div class="card-body">
+                <h5>ID: ${id}</h5>
+                <p>Nama: ${nama}</p>
+                <p>Merek: ${merek}</p>
+<button class="btn btn-outline-primary btn-sm" onclick="window.location.href='riwayat.html?id=${id}'">
+  Lihat Riwayat Pengajuan
+</button>
+              </div>
+            </div>
+          `;
+          asetList.appendChild(div);
+        });
+
+        if (asetList.innerHTML === "") {
+          asetList.innerHTML = "<p class='text-muted'>Tidak ada aset ditemukan.</p>";
+        }
+
+        document.getElementById("riwayatPengajuan").innerHTML = ""; // Bersihkan detail bawah
+      }
+
+      window.showRiwayat = async function (idBarang, nama, merek) {
+        const kontainer = document.getElementById("riwayatPengajuan");
+        kontainer.innerHTML = `<h4>Riwayat Pengajuan - ${nama} (${idBarang})</h4>`;
+
+        const q = query(
+          collection(db, "pengajuan_perbaikan"),
+          where("id", "==", idBarang),
+          orderBy("tanggal", "desc")
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          kontainer.innerHTML += `<p class="text-muted">Belum ada pengajuan untuk aset ini.</p>`;
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const tanggal = data.tanggal?.toDate().toLocaleString("id-ID", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          kontainer.innerHTML += `
+            <div class="card mb-3">
+              <div class="card-body">
+                <p><strong>Tanggal:</strong> ${tanggal}</p>
+                <p><strong>Keluhan:</strong> ${data.uraian}</p>
+                <p><strong>Status:</strong> ${data.status}</p>
+              </div>
+            </div>
+          `;
+        });
+      };
+
+      window.loadAset = loadAset;
+
+      // Load awal
+      loadAset();
+    </script>
+  </body>
+</html>

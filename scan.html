@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Scan Aset - BMN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+    <div class="container mt-4">
+      <h3 class="mb-4">Scan QR Aset BMN</h3>
+
+      <video id="video" width="100%" class="mb-3 border rounded" autoplay></video>
+      <button class="btn btn-primary mb-4" onclick="startScan()">Mulai Scan</button>
+
+      <div id="hasilScan" style="display: none">
+        <h5>Detail Aset</h5>
+        <p><strong>ID:</strong> <span id="idBarang"></span></p>
+        <p><strong>Aset:</strong> <span id="namaBarang"></span></p>
+        <p><strong>Merek:</strong> <span id="merekBarang"></span></p>
+
+        <h5 class="mt-4">Ajukan Perbaikan</h5>
+        <textarea id="uraian" class="form-control mb-2" rows="3" placeholder="Uraikan keluhan..."></textarea>
+        <button class="btn btn-success" onclick="kirimPengajuan()">Kirim Pengajuan</button>
+      </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDoc,
+        getDocs,
+        setDoc,
+        doc,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+      import { firebaseConfig } from "./firebase-config.js";
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      let scannedId = "";
+
+      // Gunakan library QR Scanner
+      import QrScanner from "https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js";
+
+      const videoElem = document.getElementById("video");
+
+      async function startScan() {
+        const scanner = new QrScanner(
+          videoElem,
+          async (result) => {
+            scannedId = result.data.trim();
+            scanner.stop();
+            await tampilkanData(scannedId);
+          },
+          {
+            returnDetailedScanResult: true,
+          }
+        );
+        scanner.start();
+      }
+
+      async function tampilkanData(id) {
+        const docRef = doc(db, "aset", id);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          alert("Aset tidak ditemukan!");
+          return;
+        }
+
+        const data = docSnap.data();
+        document.getElementById("hasilScan").style.display = "block";
+        document.getElementById("idBarang").textContent = id;
+        document.getElementById("namaBarang").textContent = data.nama || "-";
+        document.getElementById("merekBarang").textContent = data.merek || "-";
+      }
+
+      window.kirimPengajuan = async function () {
+        const uraian = document.getElementById("uraian").value.trim();
+        if (!uraian) return alert("Uraian keluhan harus diisi.");
+
+        await setDoc(doc(collection(db, "pengajuan_perbaikan")), {
+          id: scannedId,
+          uraian,
+          tanggal: serverTimestamp(),
+          status: "Diajukan",
+        });
+
+        alert("Pengajuan perbaikan berhasil dikirim.");
+        location.reload();
+      };
+
+      window.startScan = startScan;
+    </script>
+  </body>
+</html>
