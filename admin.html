@@ -119,7 +119,8 @@
                 <p>Merek: ${merek}</p>
                 <p>Lokasi: ${lokasi}</p>
                 <p>NUP: ${nup}</p>
-                <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='riwayat.html?id=${id}'">
+                <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='riwayat.html?aset=' + encodeURIComponent('${id}')">
+
                   Lihat Riwayat Pengajuan
                 </button>
               </div>

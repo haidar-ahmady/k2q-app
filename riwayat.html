@@ -30,7 +30,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Ambil ID aset dari URL
+    // Ambil ID aset dari parameter URL dengan aman
     const params = new URLSearchParams(window.location.search);
     const idBarang = params.get("id");
 
@@ -43,7 +43,7 @@
         return;
       }
 
-      // Ambil info aset
+      // Ambil informasi aset dari koleksi aset
       const asetRef = doc(db, "aset", idBarang);
       const asetSnap = await getDoc(asetRef);
 
@@ -54,40 +54,44 @@
         judul.innerHTML = `Riwayat Pengajuan - ${idBarang}`;
       }
 
-      // Ambil riwayat pengajuan
-      const q = query(
-        collection(db, "pengajuan_perbaikan"),
-        where("id", "==", idBarang),
-        orderBy("tanggal", "desc")
-      );
-      const snapshot = await getDocs(q);
+      // Ambil data pengajuan perbaikan berdasarkan id aset
+      try {
+        const q = query(
+          collection(db, "pengajuan_perbaikan"),
+          where("id", "==", idBarang),
+          orderBy("tanggal", "desc")
+        );
+        const snapshot = await getDocs(q);
 
-      if (snapshot.empty) {
-        kontainer.innerHTML = "<p class='text-muted'>Belum ada pengajuan.</p>";
-        return;
-      }
+        if (snapshot.empty) {
+          kontainer.innerHTML = "<p class='text-muted'>Belum ada pengajuan.</p>";
+          return;
+        }
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const tanggal = data.tanggal?.toDate().toLocaleString("id-ID", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const tanggal = data.tanggal?.toDate().toLocaleString("id-ID", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          const card = document.createElement("div");
+          card.className = "card mb-3";
+          card.innerHTML = `
+            <div class="card-body">
+              <p><strong>Tanggal:</strong> ${tanggal}</p>
+              <p><strong>Keluhan:</strong> ${data.uraian}</p>
+              <p><strong>Status:</strong> ${data.status}</p>
+            </div>
+          `;
+          kontainer.appendChild(card);
         });
-
-        const card = document.createElement("div");
-        card.className = "card mb-3";
-        card.innerHTML = `
-          <div class="card-body">
-            <p><strong>Tanggal:</strong> ${tanggal}</p>
-            <p><strong>Keluhan:</strong> ${data.uraian}</p>
-            <p><strong>Status:</strong> ${data.status}</p>
-          </div>
-        `;
-        kontainer.appendChild(card);
-      });
+      } catch (err) {
+        kontainer.innerHTML = `<p class="text-danger">Gagal mengambil riwayat: ${err.message}</p>`;
+      }
     }
 
     tampilkanRiwayat();
