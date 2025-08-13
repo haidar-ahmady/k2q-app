@@ -1,190 +1,290 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard Admin BMN</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  </head>
-  <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-light bg-light px-3">
-      <a class="navbar-brand" href="#">Admin BMN</a>
-      <div class="ms-auto">
-        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">Logout</button>
-      </div>
-    </nav>
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Admin BMN</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body class="bg-light">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light px-3">
+    <a class="navbar-brand" href="#">Admin BMN</a>
+    <div class="ms-auto">
+      <button id="logoutBtn" class="btn btn-outline-danger btn-sm">Logout</button>
+    </div>
+  </nav>
 
-    <div class="container mt-4">
-      <h3 class="mb-3">Dashboard Admin - Daftar Aset</h3>
-
-      <div class="row mb-3 align-items-end">
-        <div class="col-md-6">
-          <input
-            type="text"
-            id="searchInput"
-            class="form-control"
-            placeholder="Cari ID Aset..."
-          />
-        </div>
-        <div class="col-md-2">
-          <button class="btn btn-primary w-100" onclick="loadAset()">Cari</button>
-        </div>
-        <div class="col-md-2">
-          <button id="scanBtn" class="btn btn-outline-secondary w-100" onclick="toggleScan()">
-  Scan QR
-</button>
-
-        </div>
-      </div>
-
-      <div id="qr-reader" style="width: 300px; margin-bottom: 20px;"></div>
-
-      <div id="asetList" class="row gy-4"></div>
-
-      <hr />
-
-      <div id="riwayatPengajuan" class="mt-4"></div>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>Daftar Aset</h3>
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalTambahAset">+ Tambah Aset</button>
     </div>
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-      import {
-        getFirestore,
-        collection,
-        getDocs,
-        query,
-        where,
-        orderBy,
-        doc,
-        getDoc
-      } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-      import { firebaseConfig } from "./firebase-config.js";
+    <!-- Pencarian -->
+    <div class="row mb-3 align-items-end">
+      <div class="col-md-6">
+        <input type="text" id="searchInput" class="form-control" placeholder="Cari ID Aset..." />
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" onclick="loadAset()">Cari</button>
+      </div>
+      <div class="col-md-2">
+        <button id="scanBtn" class="btn btn-outline-secondary w-100" onclick="toggleScan()">Scan QR</button>
+      </div>
+    </div>
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
+    <div id="qr-reader" style="width: 300px; margin-bottom: 20px;"></div>
+    <div id="asetList" class="row gy-4"></div>
+  </div>
 
-      // Validasi login admin
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          alert("Anda harus login sebagai admin.");
-          window.location.href = "admin-login.html";
-        } else {
-          const userDoc = await getDoc(doc(db, "user", user.uid));
-          if (!userDoc.exists() || userDoc.data().role !== "admin") {
-            alert("Anda tidak memiliki akses admin.");
-            window.location.href = "index.html";
-          }
-        }
-      });
+  <!-- Modal Tambah Aset -->
+  <div class="modal fade" id="modalTambahAset" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Tambah Aset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>ID Aset</label>
+          <div class="input-group mb-2">
+            <input type="text" id="idAsetInput" class="form-control" placeholder="Scan atau ketik ID" />
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleScanTambah()">Scan</button>
+          </div>
+          <div id="qr-reader-tambah" style="width: 100%;"></div>
+          <label>Nama Aset</label>
+          <input type="text" id="namaAsetInput" class="form-control mb-2" />
+          <label>Merek</label>
+          <input type="text" id="merekAsetInput" class="form-control mb-2" />
+          <label>Lokasi</label>
+          <input type="text" id="lokasiAsetInput" class="form-control mb-2" />
+          <label>No BMN</label>
+          <input type="text" id="nobmnAsetInput" class="form-control mb-2" />
+          <label>NUP</label>
+          <input type="text" id="nupAsetInput" class="form-control mb-2" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary" onclick="simpanAset()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      // Logout
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        signOut(auth).then(() => {
+  <!-- Modal Edit Aset -->
+  <div class="modal fade" id="modalEditAset" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Aset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>ID Aset</label>
+          <div class="input-group mb-2">
+            <input type="text" id="editIdAsetInput" class="form-control" />
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleScanEdit()">Scan</button>
+          </div>
+          <div id="qr-reader-edit" style="width: 100%;"></div>
+          <label>Nama Aset</label>
+          <input type="text" id="editNamaAsetInput" class="form-control mb-2" />
+          <label>Merek</label>
+          <input type="text" id="editMerekAsetInput" class="form-control mb-2" />
+          <label>Lokasi</label>
+          <input type="text" id="editLokasiAsetInput" class="form-control mb-2" />
+          <label>No BMN</label>
+          <input type="text" id="editNobmnAsetInput" class="form-control mb-2" />
+          <label>NUP</label>
+          <input type="text" id="editNupAsetInput" class="form-control mb-2" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary" onclick="updateAset()">Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, setDoc, updateDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Auth guard
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "admin-login.html";
+      else {
+        const userDoc = await getDoc(doc(db, "user", user.uid));
+        if (!userDoc.exists() || userDoc.data().role !== "admin") {
           window.location.href = "index.html";
-        }).catch((error) => {
-          console.error("Logout gagal:", error);
-        });
-      });
-
-      // Load aset
-      async function loadAset() {
-        const asetList = document.getElementById("asetList");
-        const search = document.getElementById("searchInput").value.trim().toLowerCase();
-        const snapshot = await getDocs(collection(db, "aset"));
-        asetList.innerHTML = "";
-
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          const id = doc.id;
-          const nama = data.nama || "-";
-          const merek = data.merek || "-";
-          const lokasi = data.lokasi || "-";
-          const nup = data.nup || "-";
-
-          if (search && id.toLowerCase() !== search) return;
-
-          const div = document.createElement("div");
-          div.className = "col-12";
-          div.innerHTML = `
-            <div class="card">
-              <div class="card-body">
-                <h5>ID: ${id}</h5>
-                <p>Aset: ${nama}</p>
-                <p>Merek: ${merek}</p>
-                <p>Lokasi: ${lokasi}</p>
-                <p>NUP: ${nup}</p>
-                <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='riwayat.html?id=' + encodeURIComponent('${id}')">
-
-                  Lihat Riwayat Pengajuan
-                </button>
-              </div>
-            </div>
-          `;
-          asetList.appendChild(div);
-        });
-
-        if (asetList.innerHTML === "") {
-          asetList.innerHTML = "<p class='text-muted'>Tidak ada aset ditemukan.</p>";
         }
-
-        document.getElementById("riwayatPengajuan").innerHTML = "";
       }
-
-      // Inisialisasi scanner
-      
-        let qrReader = null;
-let isScanning = false;
-
-window.toggleScan = function () {
-  const qrContainer = document.getElementById("qr-reader");
-
-  if (isScanning) {
-    // Hentikan dan hilangkan scanner
-    qrReader.stop().then(() => {
-      qrContainer.innerHTML = "";
-      isScanning = false;
-      document.getElementById("scanBtn").innerText = "Scan QR";
-    }).catch((err) => {
-      console.error("Gagal menghentikan scanner:", err);
     });
-  } else {
-    // Tampilkan scanner
-    qrReader = new Html5Qrcode("qr-reader");
-    qrReader.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
+
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      signOut(auth);
+    };
+
+    // Load aset
+    async function loadAset() {
+      const list = document.getElementById("asetList");
+      const search = document.getElementById("searchInput").value.trim().toLowerCase();
+      list.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "aset"));
+      snapshot.forEach((d) => {
+        const data = d.data();
+        const id = d.id;
+        if (search && id.toLowerCase() !== search) return;
+        const card = document.createElement("div");
+        card.className = "col-12";
+        card.innerHTML = `
+          <div class="card">
+            <div class="card-body">
+              <h5>ID: ${id}</h5>
+              <p>Nama: ${data.nama || "-"}</p>
+              <p>Merek: ${data.merek || "-"}</p>
+              <p>Lokasi: ${data.lokasi || "-"}</p>
+              <p>No BMN: ${data.nobmn || "-"}</p>
+              <p>NUP: ${data.nup || "-"}</p>
+              <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='riwayat.html?id=' + encodeURIComponent('${id}')">Lihat Riwayat</button>
+              <button class="btn btn-warning btn-sm" onclick="editForm('${id}')">Edit</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+    window.loadAset = loadAset;
+
+    // Tambah aset
+    async function simpanAset() {
+      const id = document.getElementById("idAsetInput").value.trim();
+      if (!id) return alert("ID Aset wajib diisi");
+      await setDoc(doc(db, "aset", id), {
+        nama: document.getElementById("namaAsetInput").value.trim(),
+        merek: document.getElementById("merekAsetInput").value.trim(),
+        lokasi: document.getElementById("lokasiAsetInput").value.trim(),
+        nobmn: document.getElementById("nobmnAsetInput").value.trim(),
+        nup: document.getElementById("nupAsetInput").value.trim(),
+      });
+      alert("Aset berhasil ditambahkan");
+      loadAset();
+    }
+    window.simpanAset = simpanAset;
+
+    // Edit aset
+    async function editForm(id) {
+      const asetDoc = await getDoc(doc(db, "aset", id));
+      if (!asetDoc.exists()) return;
+      const data = asetDoc.data();
+      document.getElementById("editIdAsetInput").value = id;
+      document.getElementById("editNamaAsetInput").value = data.nama || "";
+      document.getElementById("editMerekAsetInput").value = data.merek || "";
+      document.getElementById("editLokasiAsetInput").value = data.lokasi || "";
+      document.getElementById("editNobmnAsetInput").value = data.nobmn || "";
+      document.getElementById("editNupAsetInput").value = data.nup || "";
+      new bootstrap.Modal(document.getElementById("modalEditAset")).show();
+    }
+    window.editForm = editForm;
+
+    async function updateAset() {
+      const id = document.getElementById("editIdAsetInput").value.trim();
+      await updateDoc(doc(db, "aset", id), {
+        nama: document.getElementById("editNamaAsetInput").value.trim(),
+        merek: document.getElementById("editMerekAsetInput").value.trim(),
+        lokasi: document.getElementById("editLokasiAsetInput").value.trim(),
+        nobmn: document.getElementById("editNobmnAsetInput").value.trim(),
+        nup: document.getElementById("editNupAsetInput").value.trim(),
+      });
+      alert("Aset berhasil diupdate");
+      loadAset();
+    }
+    window.updateAset = updateAset;
+
+    // Scanner untuk pencarian
+    let qrReader = null;
+    let isScanning = false;
+    window.toggleScan = function () {
+      const qrContainer = document.getElementById("qr-reader");
+      if (isScanning) {
         qrReader.stop().then(() => {
           qrContainer.innerHTML = "";
           isScanning = false;
           document.getElementById("scanBtn").innerText = "Scan QR";
-
-          document.getElementById("searchInput").value = decodedText;
-          loadAset();
         });
-      },
-      (errorMessage) => {
-        // Optional: console.warn("Scan error:", errorMessage);
+      } else {
+        qrReader = new Html5Qrcode("qr-reader");
+        qrReader.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+          qrReader.stop().then(() => {
+            qrContainer.innerHTML = "";
+            isScanning = false;
+            document.getElementById("scanBtn").innerText = "Scan QR";
+            document.getElementById("searchInput").value = decodedText;
+            loadAset();
+          });
+        });
+        isScanning = true;
+        document.getElementById("scanBtn").innerText = "Matikan QR";
       }
-    ).then(() => {
-      isScanning = true;
-      document.getElementById("scanBtn").innerText = "Matikan QR";
-    }).catch((err) => {
-      console.error("Gagal memulai scanner:", err);
-    });
-  }
-};
+    };
 
-      
+    // Scanner di tambah aset
+    let qrTambah = null;
+    let scanTambahOn = false;
+    window.toggleScanTambah = function () {
+      const qrDiv = document.getElementById("qr-reader-tambah");
+      if (scanTambahOn) {
+        qrTambah.stop().then(() => {
+          qrDiv.innerHTML = "";
+          scanTambahOn = false;
+        });
+      } else {
+        qrTambah = new Html5Qrcode("qr-reader-tambah");
+        qrTambah.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (txt) => {
+          document.getElementById("idAsetInput").value = txt;
+          qrTambah.stop().then(() => {
+            qrDiv.innerHTML = "";
+            scanTambahOn = false;
+          });
+        });
+        scanTambahOn = true;
+      }
+    };
 
-      window.loadAset = loadAset;
-      loadAset();
-    </script>
-  </body>
+    // Scanner di edit aset
+    let qrEdit = null;
+    let scanEditOn = false;
+    window.toggleScanEdit = function () {
+      const qrDiv = document.getElementById("qr-reader-edit");
+      if (scanEditOn) {
+        qrEdit.stop().then(() => {
+          qrDiv.innerHTML = "";
+          scanEditOn = false;
+        });
+      } else {
+        qrEdit = new Html5Qrcode("qr-reader-edit");
+        qrEdit.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (txt) => {
+          document.getElementById("editIdAsetInput").value = txt;
+          qrEdit.stop().then(() => {
+            qrDiv.innerHTML = "";
+            scanEditOn = false;
+          });
+        });
+        scanEditOn = true;
+      }
+    };
+
+    loadAset();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
